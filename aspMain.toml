@@ -2,8 +2,8 @@ text_offset = 0x8E420
 text_size = 0xE20
 text_address = 0x04001080
 rom_file_path = "bm64tsa.decomp.us.z64"
-output_file_path = "rsp/aspMain.cpp"
-output_function_name = "aspMain"
+output_file_path = "rsp/n_aspMain.cpp"
+output_function_name = "n_aspMain"
 
 extra_indirect_branch_targets = [
 	0x1118, 0x1470, 0x11DC, 0x1B38, 0x1214, 0x187C, 0x1254, 0x12D0,

@@ -20,3 +20,41 @@ ignored = [
     "__osPfsDeclearPage",
     #"osPfsReFormat",
 ]
+
+# These are osGetCount calls, but we cannot recompile that handwritten function, so we patch these to
+# call osGetCount instead which is handled on recomp side.
+[[patches.instruction]]
+func = "func_ovl_boss_demon_43009E60"
+vram = 0x43009E64
+value = 0x00000000
+
+[[patches.hook]]
+func = "func_ovl_boss_demon_43009E60"
+before_vram = 0x43009E64
+text = """
+    osGetCount_recomp(rdram, ctx);
+"""
+
+[[patches.instruction]]
+func = "func_ovl_boss_devil_4300ADD0"
+vram = 0x4300ADD4
+value = 0x00000000
+
+[[patches.hook]]
+func = "func_ovl_boss_devil_4300ADD0"
+before_vram = 0x4300ADD4
+text = """
+    osGetCount_recomp(rdram, ctx);
+"""
+
+[[patches.instruction]]
+func = "func_ovl_boss_angel_4300B4A0"
+vram = 0x4300B4A4
+value = 0x00000000
+
+[[patches.hook]]
+func = "func_ovl_boss_angel_4300B4A0"
+before_vram = 0x4300B4A4
+text = """
+    osGetCount_recomp(rdram, ctx);
+"""
