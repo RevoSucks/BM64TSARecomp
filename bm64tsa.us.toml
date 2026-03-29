@@ -1,0 +1,22 @@
+# Config file for Bomberman 64 The Second Attack Recompilation
+
+[input]
+entrypoint = 0x80000400
+# Paths are relative to the location of this config file.
+rom_file_path = "bm64tsa.decomp.us.z64"
+symbols_file_path = "BM64TSASyms/dump.toml"
+output_func_path = "RecompiledFuncs"
+trace_mode = false
+
+[patches]
+stubs = [
+    "func_80073EC0", # watchlo
+    "func_80073EE0", # watchhi, i think
+]
+
+ignored = [
+    #"__osBlockSum",
+    "__osPfsReleasePages",
+    "__osPfsDeclearPage",
+    #"osPfsReFormat",
+]
