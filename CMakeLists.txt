@@ -152,6 +152,8 @@ set (SOURCES
     ${CMAKE_SOURCE_DIR}/src/game/recomp_extension_api.cpp
     ${CMAKE_SOURCE_DIR}/src/game/recomp_data_api.cpp
     ${CMAKE_SOURCE_DIR}/src/game/rom_decompression.cpp
+    ${CMAKE_SOURCE_DIR}/src/game/minicoro.cpp
+    ${CMAKE_SOURCE_DIR}/src/game/process_coroutines.cpp
 
     ${CMAKE_SOURCE_DIR}/rsp/n_aspMain.cpp
 )

@@ -37,7 +37,7 @@ void osWriteBackDCacheAll(void);
 #include "ultra64.h"
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wvisibility"
-#include "structs.h"
+//#include "structs.h"
 #pragma GCC diagnostic pop
 #include "rt64_extended_gbi.h"
 

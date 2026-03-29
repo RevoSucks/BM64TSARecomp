@@ -255,10 +255,6 @@ extern "C" void osUnmapTLB_recomp(RDRAM_ARG recomp_context * ctx) {
     // TODO
 }
 
-extern "C" void setjmp_recomp(RDRAM_ARG recomp_context * ctx) {
-    // TODO
-}
-
 extern "C" void longjmp_recomp(RDRAM_ARG recomp_context * ctx) {
     // TODO
 }
