@@ -1,0 +1,14 @@
+{
+  "version": "0.2.1",
+  "defaults": {},
+  "configurations": [
+    {
+      "type": "default",
+      "project": "CMakeLists.txt",
+      "projectTarget": "BM64TSARecompiled.exe",
+      "name": "BM64TSARecompiled.exe",
+      "currentDir": "${workspaceRoot}",
+      "args": ["--show-console"]
+    }
+  ]
+}
