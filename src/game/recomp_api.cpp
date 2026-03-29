@@ -248,7 +248,22 @@ extern "C" void __osContRamWrite_recomp(RDRAM_ARG recomp_context * ctx) {
 }
 
 extern "C" void osMapTLB_recomp(RDRAM_ARG recomp_context * ctx) {
-    // TODO
+    s32 index = _arg<0, s32>(rdram, ctx);
+    s32 pm = _arg<1, s32>(rdram, ctx);
+    PTR(void) vaddr = _arg<2, PTR(void)>(rdram, ctx);
+    u32 evenpaddr = _arg<3, u32>(rdram, ctx);
+    u32 oddpaddr = (u32)MEM_W(0x10, ctx->r29);
+    u32 asid = (u32)MEM_W(0x14, ctx->r29);
+
+    printf("----------------------\n");
+    printf("[osMapTLB] arguments: \n");
+    printf("index:     0x%08X\n", index);
+    printf("pm:        0x%08X\n", pm);
+    printf("vaddr:     0x%08X\n", vaddr);
+    printf("evenpaddr: 0x%08X\n", evenpaddr);
+    printf("oddpaddr:  0x%08X\n", oddpaddr);
+    printf("asid:      0x%08X\n", asid);
+    printf("----------------------\n");
 }
 
 extern "C" void osUnmapTLB_recomp(RDRAM_ARG recomp_context * ctx) {
