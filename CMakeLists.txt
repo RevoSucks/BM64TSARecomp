@@ -154,6 +154,7 @@ set (SOURCES
     ${CMAKE_SOURCE_DIR}/src/game/rom_decompression.cpp
     ${CMAKE_SOURCE_DIR}/src/game/minicoro.cpp
     ${CMAKE_SOURCE_DIR}/src/game/process_coroutines.cpp
+    ${CMAKE_SOURCE_DIR}/src/game/tlb.cpp
 
     ${CMAKE_SOURCE_DIR}/rsp/n_aspMain.cpp
 )

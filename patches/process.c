@@ -76,12 +76,9 @@ extern void *D_800A59C8;
 void InitProcess(void);
 Process *CreateChildProcess(process_func func, u16 priority, s32 stack_size, s32 extra_data_size, Process *root);
 Process* CreateProcess(process_func func, u16 priority, u32 stack_size, s32 extra_data_size);
-void LinkProcess(Process** root, Process* process); // INLINE
 void LinkChildProcess(Process* root, Process *child);
 void WatchChildProcess(void);
 void EndProcess(void);
-void TerminateProcess(Process *process); // INLINE
-void UnlinkProcess(Process *process); // INLINE
 void SleepVProcess(void);
 void SleepProcess(s32 time);
 void SetProcessDestruct(void *destructor_func);
@@ -95,7 +92,6 @@ void KillPrioProcess(u16 arg0, u16 arg1); // REQUIRES O3 ABI
 void KillProcess(Process *process);
 void KillChildProcess(Process* process); // this cannot be static, there is a table that links against this
 void UnlinkChildProcess(Process* process);
-s32 SetKillStatusProcess(Process *process);
 void WakeupPrioProcess(u16 priority_min, u16 priority_max);
 void WakeupProcess(Process* process);
 void SetProcessCheck(void);
@@ -103,6 +99,74 @@ void CheckProcessStruct(void);
 void CheckProcessStackBroken(void);
 s32 CheckProcessStack(void);
 s32 GetProcessStackR(void);
+
+// EXPORTS TO REPLACE INLINED FUNCTIONS
+RECOMP_EXPORT void LinkProcess_Export(Process** root, Process* process) {
+    Process* src_process = *root;
+    if (src_process != NULL && (src_process->priority >= process->priority)) {
+        while (src_process->next != NULL && src_process->next->priority >= process->priority) {
+            src_process = src_process->next;
+        }
+
+        process->next = src_process->next;
+        process->youngest_child = src_process;
+        src_process->next = process;
+        if (process->next) {
+            process->next->youngest_child = process;
+        }
+    } else {
+        process->next = (*root);
+        process->youngest_child = NULL;
+        *root = process;
+        if (src_process != NULL) {
+            src_process->youngest_child = process;
+        }
+    }
+    process->oldest_child = NULL;
+    process->relative = NULL;
+}
+
+RECOMP_EXPORT void UnlinkProcess_Export(Process *process) {
+    if (process->next) {
+        process->next->youngest_child = process->youngest_child;
+    }
+
+    if (process->youngest_child) {
+        process->youngest_child->next = process->next;
+    } else {
+        top_process = process->next;
+    }
+}
+
+RECOMP_EXPORT void TerminateProcess_Export(Process *process) {
+    if (process->destructor) {
+        process->destructor();
+    }
+
+    s32 terminated_self = (process == GetCurrentProcess()); // i think this is correct...
+
+    // Destroy the native coroutine if it was created
+    // (but not our own while we're still in it)
+    if (process->coro_created && !terminated_self) {
+        recomp_process_coro_destroy(process->id);
+    }
+    process->coro_created = 0;
+
+    // Update process state
+
+    UnlinkProcess_Export(process);
+    process_count--;
+    //longjmp(&process_jmp_buf, 2);
+}
+
+RECOMP_EXPORT s32 SetKillStatusProcess_Export(Process *process) {
+    if (process->exec_mode != 3) {
+        WakeupProcess(process);
+        process->exec_mode = 3;
+        return 0;
+    }
+    return -1;
+}
 
 static s32 yield_to_scheduler(s32 reason) {
     GetCurrentProcess()->yield_value = reason;
@@ -133,44 +197,6 @@ RECOMP_PATCH void InitProcess(void) {
 
     process_count = 0;
     top_process = 0;
-}
-
-// INLINE
-RECOMP_PATCH void LinkProcess(Process** root, Process* process) {
-    Process* src_process = *root;
-    if (src_process != NULL && (src_process->priority >= process->priority)) {
-        while (src_process->next != NULL && src_process->next->priority >= process->priority) {
-            src_process = src_process->next;
-        }
-
-        process->next = src_process->next;
-        process->youngest_child = src_process;
-        src_process->next = process;
-        if (process->next) {
-            process->next->youngest_child = process;
-        }
-    } else {
-        process->next = (*root);
-        process->youngest_child = NULL;
-        *root = process;
-        if (src_process != NULL) {
-            src_process->youngest_child = process;
-        }
-    }
-    process->oldest_child = NULL;
-    process->relative = NULL;
-}
-
-RECOMP_PATCH void UnlinkProcess(Process *process) {
-    if (process->next) {
-        process->next->youngest_child = process->youngest_child;
-    }
-
-    if (process->youngest_child) {
-        process->youngest_child->next = process->next;
-    } else {
-        top_process = process->next;
-    }
 }
 
 static int total_created_processes = 0;
@@ -208,7 +234,7 @@ RECOMP_PATCH Process* CreateProcess(process_func func, u16 priority, u32 stack_s
     //process->prc_jump.sp = (u32 *)process->base_sp + stack_size - 8;
     process->destructor = NULL;
     process->id = allocate_process_id();
-    LinkProcess(&top_process, process);
+    LinkProcess_Export(&top_process, process);
 
     // Native coroutine will be created lazily when first scheduled
     process->coro_created = 0;
@@ -275,41 +301,9 @@ RECOMP_PATCH void KillChildProcess(Process* process) {
         if (child_process->oldest_child != 0) {
             KillChildProcess(child_process);
         }
-        SetKillStatusProcess(child_process);
+        SetKillStatusProcess_Export(child_process);
     }
     process->oldest_child = NULL;
-}
-
-RECOMP_PATCH void TerminateProcess(Process *process) {
-    if (process->destructor) {
-        process->destructor();
-    }
-
-    s32 terminated_self = (process == GetCurrentProcess()); // i think this is correct...
-
-    // Destroy the native coroutine if it was created
-    // (but not our own while we're still in it)
-    if (process->coro_created && !terminated_self) {
-        recomp_process_coro_destroy(process->id);
-    }
-    process->coro_created = 0;
-
-    // Update process state
-    process->exec_mode = EXEC_PROCESS_DEAD;
-
-    free_process_id(process->id);
-
-    UnlinkProcess(process);
-    process_count--;
-
-    // If we terminated ourselves, yield back to scheduler
-    if (terminated_self) {
-        //D_802AC344 = prev;
-        yield_to_scheduler(YIELD_TERMINATE);
-        // Should never return here
-    }
-
-    //longjmp(&process_jmp_buf, 2);
 }
 
 RECOMP_PATCH void EndProcess(void) {
@@ -317,7 +311,7 @@ RECOMP_PATCH void EndProcess(void) {
 
     KillChildProcess(process);
     UnlinkChildProcess(process);
-    TerminateProcess(process);
+    TerminateProcess_Export(process);
 }
 
 RECOMP_PATCH void SleepProcess(s32 time) {
@@ -481,7 +475,7 @@ RECOMP_PATCH void KillPrioProcess(u16 arg0, u16 arg1) {
         if (process->priority >= arg0 && arg1 >= process->priority) {
             KillChildProcess(process);
             UnlinkChildProcess(process);
-            SetKillStatusProcess(process);
+            SetKillStatusProcess_Export(process);
         }
     }
 }
@@ -489,16 +483,7 @@ RECOMP_PATCH void KillPrioProcess(u16 arg0, u16 arg1) {
 RECOMP_PATCH void KillProcess(Process *process) {
     KillChildProcess(process);
     UnlinkChildProcess(process);
-    SetKillStatusProcess(process);
-}
-
-RECOMP_PATCH s32 SetKillStatusProcess(Process *process) {
-    if (process->exec_mode != 3) {
-        WakeupProcess(process);
-        process->exec_mode = 3;
-        return 0;
-    }
-    return -1;
+    SetKillStatusProcess_Export(process);
 }
 
 RECOMP_PATCH void WakeupPrioProcess(u16 priority_min, u16 priority_max) {
