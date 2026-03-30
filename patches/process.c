@@ -281,12 +281,7 @@ RECOMP_PATCH void WatchChildProcess(void) {
     Process* process = GetCurrentProcess();
     if (process->oldest_child) {
         process->exec_mode = EXEC_PROCESS_WATCH;
-        // TODO: setjmp/longjmp
-        /*
-        if (!setjmp(&process->prc_jump)) {
-            longjmp(&process_jmp_buf, 1);
-        }
-        */
+        yield_to_scheduler(YIELD_NORMAL);
     }
 }
 
@@ -324,17 +319,12 @@ RECOMP_PATCH void SleepProcess(s32 time) {
         process->sleep_time = time;
     }
 
-    //jmp = &process->prc_jump;
-    // TODO setjmp
-    //res = setjmp(jmp);
-
-    if (!res) {
-        //longjmp(&process_jmp_buf, 1);
-    }
+    yield_to_scheduler(YIELD_NORMAL);
 }
 
 RECOMP_PATCH void SleepVProcess(void) {
-    SleepProcess(0);
+    //SleepProcess(0);
+    yield_to_scheduler(YIELD_NORMAL);
 }
 
 RECOMP_PATCH void SetProcessDestruct(void *destructor_func) {

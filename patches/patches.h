@@ -33,6 +33,8 @@ void osWriteBackDCacheAll(void);
 #define sinf sinf_recomp
 #define cosf __cosf_recomp
 #define osContGetReadData osContGetReadData_recomp
+#define osCreatePiManager osCreatePiManager_recomp
+#define osYieldThread osYieldThread_recomp
 
 #include "ultra64.h"
 #pragma GCC diagnostic push
@@ -95,6 +97,8 @@ void osWriteBackDCacheAll(void);
 typedef int bool;
 
 typedef unsigned size_t;
+
+int recomp_printf(const char* fmt, ...);
 void memcpy(void * dst, void *src, int size);
 char* strchr(const char* s, int c);
 int recomp_printf(const char* fmt, ...);

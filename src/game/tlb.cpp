@@ -46,17 +46,17 @@ extern "C" void osMapTLB_recomp(uint8_t* rdram, recomp_context* ctx) {
             break;
     }
 
-    map_tlb_overlays(index, evenpaddr, oddpaddr, vaddr, page_size);
+    //map_tlb_overlays(index, evenpaddr, oddpaddr, vaddr, page_size);
 }
 
 extern "C" void osUnmapTLB_recomp(uint8_t* rdram, recomp_context* ctx) {
     s32 index = _arg<0, s32>(rdram, ctx);
 
-    unmap_tlb_overlays(index);
+    //unmap_tlb_overlays(index);
 }
 
 extern "C" void osUnmapTLBAll_recomp(uint8_t* rdram, recomp_context* ctx) {
     for (size_t i = 0; i < 32; i++) {
-        unmap_tlb_overlays(i);
+        //unmap_tlb_overlays(i);
     }
 }

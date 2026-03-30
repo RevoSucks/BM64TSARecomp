@@ -55,3 +55,5 @@ recomp_process_yield = 0x8F0000E8;
 recomp_process_switch_to = 0x8F0000F0;
 recomp_process_is_started = 0x8F0000F8;
 recomp_process_set_started = 0x8F000100;
+osCreatePiManager_recomp = 0x8F000108;
+osYieldThread_recomp = 0x8F00010C;
