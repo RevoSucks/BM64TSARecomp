@@ -3,6 +3,11 @@
 //#include "process.h"
 #include "process_funcs.h"
 
+// pending heap to free after a process terminates itself
+
+// the scheduler sets this before yielding and checks it after
+static void* g_pending_heap_free = NULL;
+
 // memory externs
 extern void errstop(const char *fmt, ...);
 extern s32 GetMemoryAllocSize(s32);
@@ -100,6 +105,32 @@ void CheckProcessStackBroken(void);
 s32 CheckProcessStack(void);
 s32 GetProcessStackR(void);
 
+static s32 yield_to_scheduler(s32 reason) {
+    GetCurrentProcess()->yield_value = reason;
+    return recomp_process_yield(reason);
+}
+
+#define MAX_PROC_IDS 256
+
+u8 allocated_process_ids[MAX_PROC_IDS] = {0};
+
+static int allocate_process_id(void) {
+    for(int i = 1; i < MAX_PROC_IDS; i++) {
+        if (allocated_process_ids[i] == 0) {
+            // this ID is free.
+            allocated_process_ids[i] = 1;
+            return i;
+        }
+    }
+    return 0; // uh oh
+}
+
+static void free_process_id(int i) {
+    if (i > 0 && i < MAX_PROC_IDS) {
+        allocated_process_ids[i] = 0; // mark as free
+    }
+}
+
 // EXPORTS TO REPLACE INLINED FUNCTIONS
 RECOMP_EXPORT void LinkProcess_Export(Process** root, Process* process) {
     Process* src_process = *root;
@@ -143,20 +174,27 @@ RECOMP_EXPORT void TerminateProcess_Export(Process *process) {
         process->destructor();
     }
 
-    s32 terminated_self = (process == GetCurrentProcess()); // i think this is correct...
+    // save heap pointer before we do anything else.
 
-    // Destroy the native coroutine if it was created
-    // (but not our own while we're still in it)
-    if (process->coro_created && !terminated_self) {
-        recomp_process_coro_destroy(process->id);
-    }
-    process->coro_created = 0;
+    // the process struct lives inside this heap, so we have to
+    // read everything we need before freeing
 
-    // Update process state
+    void* heap_to_free = process->heap;
+    u32 process_id = process->id;
 
     UnlinkProcess_Export(process);
     process_count--;
-    //longjmp(&process_jmp_buf, 2);
+
+    // store heap pointer in global so scheduler can free it
+    // we can't store it in the process struct because that's inside the heap
+    g_pending_heap_free = heap_to_free;
+
+    // Free the process ID for reuse
+    free_process_id(process_id);
+
+    // Yield back to scheduler. the coroutine will be in DEAD state
+    // after this, and the scheduler will destroy it + free the heap
+    yield_to_scheduler(YIELD_TERMINATE);
 }
 
 RECOMP_EXPORT s32 SetKillStatusProcess_Export(Process *process) {
@@ -166,30 +204,6 @@ RECOMP_EXPORT s32 SetKillStatusProcess_Export(Process *process) {
         return 0;
     }
     return -1;
-}
-
-static s32 yield_to_scheduler(s32 reason) {
-    GetCurrentProcess()->yield_value = reason;
-    return recomp_process_yield(reason);
-}
-
-#define MAX_PROC_IDS 256
-
-u8 allocated_process_ids[MAX_PROC_IDS] = {0};
-
-static int allocate_process_id(void) {
-    for(int i = 0; i < MAX_PROC_IDS; i++) {
-        if (allocated_process_ids[i] == 0) {
-            // this ID is free.
-            allocated_process_ids[i] = 1;
-            return i;
-        }
-    }
-    return 0; // uh oh
-}
-
-static void free_process_id(int i) {
-    allocated_process_ids[i] = 0; // mark as free
 }
 
 RECOMP_PATCH void InitProcess(void) {
@@ -205,6 +219,8 @@ RECOMP_PATCH Process* CreateProcess(process_func func, u16 priority, u32 stack_s
     s32 alloc_size;
     HeapNode *process_heap;
     Process* process;
+
+    recomp_printf("[CreateProcess] func 0x%08X priority 0x%08X stack_size 0x%08X extra_data_size 0x%08X\n", (u32)func, priority, stack_size, extra_data_size);
 
     if (stack_size == 0) {
         stack_size = 0x1000;
@@ -226,10 +242,11 @@ RECOMP_PATCH Process* CreateProcess(process_func func, u16 priority, u32 stack_s
     process->exec_mode = EXEC_PROCESS_DEFAULT;
     process->priority = priority;
     process->sleep_time = 0;
-    process->base_sp = AllocMemory(process_heap, stack_size);
+    process->base_sp = AllocMemory(process_heap, stack_size) + stack_size - 8;
     process->stack_size = stack_size;
     ((s32*)process->base_sp)[0] = 0xDBDB7272;
     //process->prc_jump.func = func;
+    recomp_printf("[CreateProcess] func 0x%08X\n", (u32)func);
     process->func = func;
     //process->prc_jump.sp = (u32 *)process->base_sp + stack_size - 8;
     process->destructor = NULL;
@@ -239,6 +256,8 @@ RECOMP_PATCH Process* CreateProcess(process_func func, u16 priority, u32 stack_s
     // Native coroutine will be created lazily when first scheduled
     process->coro_created = 0;
     process->yield_value = 0;
+    process->oldest_child = NULL;
+    process->relative = NULL;
 
     process_count++;
     return process;
@@ -311,8 +330,6 @@ RECOMP_PATCH void EndProcess(void) {
 
 RECOMP_PATCH void SleepProcess(s32 time) {
     Process* process = GetCurrentProcess();
-    int res;
-    jmp_buf *jmp;
 
     if (time != 0 && process->exec_mode != EXEC_PROCESS_DEAD) {
         process->exec_mode = EXEC_PROCESS_SLEEPING;
@@ -323,8 +340,7 @@ RECOMP_PATCH void SleepProcess(s32 time) {
 }
 
 RECOMP_PATCH void SleepVProcess(void) {
-    //SleepProcess(0);
-    yield_to_scheduler(YIELD_NORMAL);
+    SleepProcess(0);
 }
 
 RECOMP_PATCH void SetProcessDestruct(void *destructor_func) {
@@ -334,89 +350,95 @@ RECOMP_PATCH void SetProcessDestruct(void *destructor_func) {
 
 RECOMP_PATCH void CallProcess(s32 time) {
     Process* cur_proc_local;
-    s32 ret;
+    Process* next_proc;
     s32 yield_reason;
 
     current_process = top_process;
-    //ret = setjmp(&process_jmp_buf); TODO
 
-    while (1)
-    {
-        switch (ret)
-        {
-            case 2:
-                free(current_process->heap);
-            case 1:
-                if (((u8*)current_process->heap)[4] != 0xA5) {
-                    //errstop("stack overlap error.(process pointer %x)\n", current_process);
-                    cur_proc_local = current_process;
-                }
-                current_process = current_process->next;
-                break;
-        }
-
+    while (1) {
         cur_proc_local = current_process;
-        if (cur_proc_local == 0) {
+        if (cur_proc_local == NULL) {
             break;
         }
 
-        switch (cur_proc_local->exec_mode){
-            case EXEC_PROCESS_UNK4:
-                ret = 1;
+        // Check stat flag
+        if (cur_proc_local->stat & 1) {
+            if (cur_proc_local->exec_mode != 3) {
+                current_process = current_process->next;
+                continue;
+            }
+        }
+
+        switch (cur_proc_local->exec_mode) {
+            case EXEC_PROCESS_UNK4: // paused
+                current_process = current_process->next;
                 break;
             case EXEC_PROCESS_SLEEPING:
                 if (cur_proc_local->sleep_time > 0 && (cur_proc_local->sleep_time -= time) <= 0) {
                     cur_proc_local->sleep_time = 0;
                     cur_proc_local->exec_mode = EXEC_PROCESS_DEFAULT;
                 }
-                ret = 1;
+                current_process = current_process->next;
                 break;
-
             case EXEC_PROCESS_WATCH:
                 if (cur_proc_local->oldest_child != 0) {
-                    ret = 1;
+                    current_process = current_process->next;
                 }
                 else {
                     cur_proc_local->exec_mode = EXEC_PROCESS_DEFAULT;
-                    ret = 0;
+                    goto run_process;
                 }
                 break;
-
             case EXEC_PROCESS_DEAD:
-                //cur_proc_local->prc_jump.func = EndProcess;
-
+                // Process is dead, need to run EndProcess on it
+                // Destroy old coroutine first if it exists
+                if (cur_proc_local->coro_created) {
+                    recomp_process_coro_destroy(cur_proc_local->id);
+                    cur_proc_local->coro_created = 0;
+                }
+                cur_proc_local->func = (void *) EndProcess;
             case EXEC_PROCESS_DEFAULT:
-                // Create native coroutine on first run
+run_process:;
+                // Create coroutine on first run
                 if (!cur_proc_local->coro_created) {
-                    // Calculate initial MIPS stack pointer (stack grows downward)
-                    // sp should point to the bottom of the stack area (highest address)
-                    u32 mips_sp = (u32)cur_proc_local->base_sp + cur_proc_local->stack_size;
-            
-                    recomp_process_coro_create(
-                        cur_proc_local->id,
-                        (u32)cur_proc_local->func,
-                        cur_proc_local->stack_size,
-                        mips_sp
-                    );
+                    // mips_sp field stores the stack size
+                    u32 stack_size = cur_proc_local->stack_size;
+                    // Calculate actual MIPS SP (top of stack)
+                    u32 mips_sp = (u32) cur_proc_local->base_sp + 8;
+
+                    recomp_printf("func: 0x%08X\n", (u32)cur_proc_local->func);
+                    recomp_process_coro_create(cur_proc_local->id, (u32)cur_proc_local->func, stack_size,
+                                               mips_sp);
                     cur_proc_local->coro_created = 1;
                 }
+
+                // Save next pointer BEFORE switching, because the process
+                // may terminate itself and free its memory
+                next_proc = cur_proc_local->next;
+
+                // Clear pending free
+                g_pending_heap_free = NULL;
 
                 // Switch to this process and wait for it to yield
                 yield_reason = recomp_process_switch_to(cur_proc_local->id, 1);
 
-                // Handle special yield reasons
-                if (yield_reason == YIELD_STACKCHECK) {
-                    // Process requested a stack check
-                    s32 ret = CheckProcessStack();
-                    if (ret == 0) {
-                        ret = -1;
+                // Handle yield reasons
+                if (yield_reason == YIELD_TERMINATE) {
+                    // Process terminated itself
+                    recomp_process_coro_destroy(cur_proc_local->id);
+
+                    // Free the heap that the process stored for us
+                    if (g_pending_heap_free != NULL) {
+                        FreeProcessMemory(g_pending_heap_free);
+                        g_pending_heap_free = NULL;
                     }
-                    // Store result and resume process
-                    cur_proc_local->yield_value = ret;
-                    yield_reason = recomp_process_switch_to(cur_proc_local->id, ret);
+
+                    // Use saved next pointer since process is now freed
+                    current_process = next_proc;
+                } else {
+                    // YIELD_NORMAL
+                    current_process = cur_proc_local->next;
                 }
-                // TODO
-                //longjmp(&cur_proc_local->prc_jump, 1);
                 break;
         }
     }
@@ -517,10 +539,12 @@ RECOMP_PATCH void CheckProcessStruct(void) {
 }
 
 RECOMP_PATCH void CheckProcessStackBroken(void) {
-
+    yield_to_scheduler(YIELD_STACKCHECK);
 }
 
 RECOMP_PATCH s32 CheckProcessStack(void) {
+    yield_to_scheduler(YIELD_STACKCHECK);
+
     if ((getsp() - (s32)current_process->base_sp) < 5) {
         return 1;
     }

@@ -6,7 +6,7 @@ entrypoint = 0x80000400
 rom_file_path = "bm64tsa.decomp.us.z64"
 symbols_file_path = "BM64TSASyms/dump.toml"
 output_func_path = "RecompiledFuncs"
-trace_mode = true
+trace_mode = false
 
 [patches]
 stubs = [
