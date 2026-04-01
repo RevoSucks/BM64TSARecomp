@@ -7,6 +7,7 @@
  * applies those adjustments using relocation data extracted from the ELF.
  */
 
+#include "patches.h"
 #include "overlay_relocs.h"
 
 /**
@@ -27,6 +28,8 @@ void overlay_apply_relocations(u32 file_id, u8 *load_addr)
     s32 delta;
     u16 reloc_count;
     u16 i;
+
+    recomp_printf("[overlay_apply_relocations] file_id 0x%08X load_addr 0x%08X\n", file_id, load_addr);
 
     /* -------------------------------------------------------------------- */
     /* Validate inputs and retrieve relocation info                         */

@@ -168,6 +168,7 @@ RECOMP_PATCH u32 fexecLoadAddress(s32 id, u32 (*func)()) {
     s32 temp_a2;
     s32 pad[5];
     int size = 0x2A0000;
+    int fileID = 0;
 
     recomp_printf("[fexecLoadAddress] id 0x%08X func 0x%08X\n", id, (u32)func);
 
@@ -189,6 +190,7 @@ RECOMP_PATCH u32 fexecLoadAddress(s32 id, u32 (*func)()) {
         evfile_found = (D_800F0250[i][1] << 8) + D_800F0250[i][2];
         if (evfile_found == id) {
             evfile_found = D_800F0250[i + 1][0];
+            fileID = D_800F0250[i][2];
             break;
         }
     }
@@ -262,7 +264,7 @@ RECOMP_PATCH u32 fexecLoadAddress(s32 id, u32 (*func)()) {
             break;
     }
 
-    overlay_apply_relocations(evfile_found & 0xFF, func);
+    overlay_apply_relocations(fileID, func);
 
     osWritebackDCache((void*)(((u32) ((u32)func + 0xF) >> 4) * 0x10), 0x80000);
     fclose_game(stream);

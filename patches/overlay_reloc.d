@@ -1,4 +1,4 @@
-overlay_reloc.o: overlay_reloc.c overlay_relocs.h \
+overlay_reloc.o: overlay_reloc.c patches.h \
   ../lib/bm64tsa/include/ultra64.h \
   ../lib/bm64tsa/include/PR/ultratypes.h ../lib/bm64tsa/include/PR/rcp.h \
   ../lib/bm64tsa/include/PR/R4300.h ../lib/bm64tsa/include/PR/os.h \
@@ -32,4 +32,5 @@ overlay_reloc.o: overlay_reloc.c overlay_relocs.h \
   ../lib/bm64tsa/include/PR/ultraerror.h \
   ../lib/bm64tsa/include/PR/ultralog.h ../lib/bm64tsa/include/macros.h \
   ../lib/bm64tsa/include/variables.h ../lib/bm64tsa/include/functions.h \
-  ../lib/bm64tsa/include/sections.h
+  ../lib/bm64tsa/include/sections.h \
+  ../lib/rt64/include/rt64_extended_gbi.h overlay_relocs.h
