@@ -36,7 +36,7 @@ void overlay_apply_relocations(u32 file_id, u8 *load_addr)
         return;
     }
 
-    info = &g_overlay_relocs[file_id];
+    info = &g_relocs[file_id];
     relocs = info->relocs;
     reloc_count = info->count;
 

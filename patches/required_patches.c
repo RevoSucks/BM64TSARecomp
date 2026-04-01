@@ -159,6 +159,7 @@ RECOMP_PATCH void fexecLoad(s32 id) {
 }
 
 extern s32 func_ovl_menu_title_60000000(void);
+extern void overlay_apply_relocations(u32 file_id, u8 *load_addr);
 
 RECOMP_PATCH u32 fexecLoadAddress(s32 id, u32 (*func)()) {
     HuFILE *stream;
@@ -260,6 +261,8 @@ RECOMP_PATCH u32 fexecLoadAddress(s32 id, u32 (*func)()) {
             decode(stream, func, i);
             break;
     }
+
+    overlay_apply_relocations(evfile_found & 0xFF, func);
 
     osWritebackDCache((void*)(((u32) ((u32)func + 0xF) >> 4) * 0x10), 0x80000);
     fclose_game(stream);
