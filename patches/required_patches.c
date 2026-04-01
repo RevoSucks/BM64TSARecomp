@@ -214,45 +214,45 @@ RECOMP_PATCH u32 fexecLoadAddress(s32 id, u32 (*func)()) {
 
     // TODO: Rest of overlays
     switch((u32)stream->unk4) {
-        // case 0x00000000: recomp_load_overlays(0x1000010, (void*)0x40000000, i); break; // ovl_actor_main
-        // case 0x00000000: recomp_load_overlays(0x10201E0, (void*)0x41000000, i); break; // ovl_item_main
-        // case 0x00000000: recomp_load_overlays(0x10273D0, (void*)0x44000000, i); break; // ovl_coll_main
-        // case 0x00000000: recomp_load_overlays(0x102E100, (void*)0x45000000, i); break; // ovl_mobj_main
-        // case 0x00000000: recomp_load_overlays(0x1040E10, (void*)0x42000000, i); break; // ovl_blast_flame
-        // case 0x00000000: recomp_load_overlays(0x1044470, (void*)0x42000000, i); break; // ovl_blast_ice
-        // case 0x00000000: recomp_load_overlays(0x1048430, (void*)0x42000000, i); break; // ovl_blast_wind
-        // case 0x00000000: recomp_load_overlays(0x104C8E0, (void*)0x42000000, i); break; // ovl_blast_ground
-        // case 0x00000000: recomp_load_overlays(0x1050FF0, (void*)0x42000000, i); break; // ovl_blast_elec
-        // case 0x00000000: recomp_load_overlays(0x1055450, (void*)0x42000000, i); break; // ovl_blast_light
-        // case 0x00000000: recomp_load_overlays(0x1059700, (void*)0x42000000, i); break; // ovl_blast_dark
-        // case 0x00000000: recomp_load_overlays(0x105DE50, (void*)0x43000000, i); break; // ovl_enemy_world1
-        // case 0x00000000: recomp_load_overlays(0x10685D0, (void*)0x43000000, i); break; // ovl_enemy_world2
-        // case 0x00000000: recomp_load_overlays(0x1072EF0, (void*)0x43000000, i); break; // ovl_enemy_world3
-        // case 0x00000000: recomp_load_overlays(0x107D500, (void*)0x43000000, i); break; // ovl_enemy_world4
-        // case 0x00000000: recomp_load_overlays(0x1087490, (void*)0x43000000, i); break; // ovl_enemy_world5
-        // case 0x00000000: recomp_load_overlays(0x1091710, (void*)0x43000000, i); break; // ovl_enemy_world6
-        // case 0x00000000: recomp_load_overlays(0x109BBF0, (void*)0x43000000, i); break; // ovl_enemy_world7
-        // case 0x00000000: recomp_load_overlays(0x10A5E80, (void*)0x43000000, i); break; // ovl_enemy_world8
-        // case 0x00000000: recomp_load_overlays(0x10B0AF0, (void*)0x43000000, i); break; // ovl_enemy_battle
-        // case 0x00000000: recomp_load_overlays(0x10BA3A0, (void*)0x43000000, i); break; // ovl_boss_demon
-        // case 0x00000000: recomp_load_overlays(0x10C4B90, (void*)0x43000000, i); break; // ovl_boss_devil
-        // case 0x00000000: recomp_load_overlays(0x10D0330, (void*)0x43000000, i); break; // ovl_boss_angel
-        // case 0x00000000: recomp_load_overlays(0x10DC340, (void*)0x60000000, i); break; // ovl_menu_card
-        case 0x00229D0E: recomp_load_overlays(0x10DFA80, (void*)0x60000000, i); break; // ovl_menu_title
-        // case 0x00000000: recomp_load_overlays(0x10E4440, (void*)0x60000000, i); break; // ovl_menu_file
-        // case 0x00000000: recomp_load_overlays(0x10E77A0, (void*)0x60000000, i); break; // ovl_menu_battle
-        // case 0x00000000: recomp_load_overlays(0x10F37E0, (void*)0x60000000, i); break; // ovl_menu_custom
-        // case 0x00000000: recomp_load_overlays(0x10F8F10, (void*)0x60000000, i); break; // ovl_menu_stage
-        case 0x00248010: recomp_load_overlays(0x10FF850, (void*)0x60000000, i); break; // ovl_demo_story
-        // case 0x00000000: recomp_load_overlays(0x1107250, (void*)0x60000000, i); break; // ovl_demo_guide
-        // case 0x00000000: recomp_load_overlays(0x1108F70, (void*)0x60000000, i); break; // ovl_stage_world1
-        // case 0x00000000: recomp_load_overlays(0x110D180, (void*)0x60000000, i); break; // ovl_stage_world2
-        // case 0x00000000: recomp_load_overlays(0x1112E30, (void*)0x60000000, i); break; // ovl_stage_world3
-        // case 0x00000000: recomp_load_overlays(0x11198D0, (void*)0x60000000, i); break; // ovl_stage_world4
-        // case 0x00000000: recomp_load_overlays(0x1120E00, (void*)0x60000000, i); break; // ovl_stage_world5
-        // case 0x00000000: recomp_load_overlays(0x1124A30, (void*)0x60000000, i); break; // ovl_stage_world6
-        // case 0x00000000: recomp_load_overlays(0x112B010, (void*)0x60000000, i); break; // ovl_stage_world7
-        // case 0x00000000: recomp_load_overlays(0x1130B60, (void*)0x60000000, i); break; // ovl_stage_world8
+        case 0x10800C: recomp_load_overlays(0x1000010, (void*)0x40000000, i); break; // ovl_actor_main
+        case 0x12800C: recomp_load_overlays(0x10201E0, (void*)0x41000000, i); break; // ovl_item_main
+        case 0x13800C: recomp_load_overlays(0x10273D0, (void*)0x44000000, i); break; // ovl_coll_main
+        case 0x14800C: recomp_load_overlays(0x102E100, (void*)0x45000000, i); break; // ovl_mobj_main
+        case 0x16801E: recomp_load_overlays(0x1040E10, (void*)0x42000000, i); break; // ovl_blast_flame
+        case 0x169E50: recomp_load_overlays(0x1044470, (void*)0x42000000, i); break; // ovl_blast_ice
+        case 0x16C2FA: recomp_load_overlays(0x1048430, (void*)0x42000000, i); break; // ovl_blast_wind
+        case 0x16EB1E: recomp_load_overlays(0x104C8E0, (void*)0x42000000, i); break; // ovl_blast_ground
+        case 0x17150C: recomp_load_overlays(0x1050FF0, (void*)0x42000000, i); break; // ovl_blast_elec
+        case 0x173D0A: recomp_load_overlays(0x1055450, (void*)0x42000000, i); break; // ovl_blast_light
+        case 0x176344: recomp_load_overlays(0x1059700, (void*)0x42000000, i); break; // ovl_blast_dark
+        case 0x188024: recomp_load_overlays(0x105DE50, (void*)0x43000000, i); break; // ovl_enemy_world1
+        case 0x18E7F8: recomp_load_overlays(0x10685D0, (void*)0x43000000, i); break; // ovl_enemy_world2
+        case 0x195020: recomp_load_overlays(0x1072EF0, (void*)0x43000000, i); break; // ovl_enemy_world3
+        case 0x19B6DA: recomp_load_overlays(0x107D500, (void*)0x43000000, i); break; // ovl_enemy_world4
+        case 0x1A1946: recomp_load_overlays(0x1087490, (void*)0x43000000, i); break; // ovl_enemy_world5
+        case 0x1A7EBC: recomp_load_overlays(0x1091710, (void*)0x43000000, i); break; // ovl_enemy_world6
+        case 0x1AE4CC: recomp_load_overlays(0x109BBF0, (void*)0x43000000, i); break; // ovl_enemy_world7
+        case 0x1B49AE: recomp_load_overlays(0x10A5E80, (void*)0x43000000, i); break; // ovl_enemy_world8
+        case 0x1BB4E2: recomp_load_overlays(0x10B0AF0, (void*)0x43000000, i); break; // ovl_enemy_battle
+        case 0x1E8012: recomp_load_overlays(0x10BA3A0, (void*)0x43000000, i); break; // ovl_boss_demon
+        case 0x1EEFFC: recomp_load_overlays(0x10C4B90, (void*)0x43000000, i); break; // ovl_boss_devil
+        case 0x1F6EAA: recomp_load_overlays(0x10D0330, (void*)0x43000000, i); break; // ovl_boss_angel
+        case 0x22801C: recomp_load_overlays(0x10DC340, (void*)0x60000000, i); break; // ovl_menu_card
+        case 0x229D0E: recomp_load_overlays(0x10DFA80, (void*)0x60000000, i); break; // ovl_menu_title
+        case 0x22C92E: recomp_load_overlays(0x10E4440, (void*)0x60000000, i); break; // ovl_menu_file
+        case 0x22E668: recomp_load_overlays(0x10E77A0, (void*)0x60000000, i); break; // ovl_menu_battle
+        case 0x236118: recomp_load_overlays(0x10F37E0, (void*)0x60000000, i); break; // ovl_menu_custom
+        case 0x239668: recomp_load_overlays(0x10F8F10, (void*)0x60000000, i); break; // ovl_menu_stage
+        case 0x248010: recomp_load_overlays(0x10FF850, (void*)0x60000000, i); break; // ovl_demo_story
+        case 0x24C094: recomp_load_overlays(0x1107250, (void*)0x60000000, i); break; // ovl_demo_guide
+        case 0x258022: recomp_load_overlays(0x1108F70, (void*)0x60000000, i); break; // ovl_stage_world1
+        case 0x25A13E: recomp_load_overlays(0x110D180, (void*)0x60000000, i); break; // ovl_stage_world2
+        case 0x25D006: recomp_load_overlays(0x1112E30, (void*)0x60000000, i); break; // ovl_stage_world3
+        case 0x2608A6: recomp_load_overlays(0x11198D0, (void*)0x60000000, i); break; // ovl_stage_world4
+        case 0x263C62: recomp_load_overlays(0x1120E00, (void*)0x60000000, i); break; // ovl_stage_world5
+        case 0x265A32: recomp_load_overlays(0x1124A30, (void*)0x60000000, i); break; // ovl_stage_world6
+        case 0x269008: recomp_load_overlays(0x112B010, (void*)0x60000000, i); break; // ovl_stage_world7
+        case 0x26BF18: recomp_load_overlays(0x1130B60, (void*)0x60000000, i); break; // ovl_stage_world8
         default:
             if ((u32)func >= 0x40000000 && (u32)func <= 0x60000000) {
                 recomp_printf("[fexecLoadAddress] Unrecognized load from 0x%08X func 0x%08X (size 0x%08X)\n", stream->unk4, (u32)func, i);
