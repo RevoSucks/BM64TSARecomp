@@ -3,6 +3,8 @@
 //#include "process.h"
 #include "process_funcs.h"
 
+#define GetCurrentProcess HuGetCurrentProcess
+
 // pending heap to free after a process terminates itself
 
 // the scheduler sets this before yielding and checks it after
@@ -304,7 +306,7 @@ RECOMP_PATCH void WatchChildProcess(void) {
     }
 }
 
-RECOMP_PATCH Process* GetCurrentProcess(void) {
+RECOMP_EXPORT Process* GetCurrentProcess(void) {
     return current_process;
 }
 
