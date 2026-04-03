@@ -169,6 +169,7 @@ RECOMP_PATCH u32 fexecLoadAddress(s32 id, u32 (*func)()) {
     s32 pad[5];
     int size = 0x2A0000;
     int fileID = 0;
+    u32 (*funcBackup)();
 
     recomp_printf("[fexecLoadAddress] id 0x%08X func 0x%08X\n", id, (u32)func);
 
@@ -222,6 +223,8 @@ RECOMP_PATCH u32 fexecLoadAddress(s32 id, u32 (*func)()) {
     /* 0x44000000 */ // 0x80310000
     /* 0x45000000 */ // 0x80340000
     /* 0x60000000 */ // 0x80370000
+
+    funcBackup = func;
 
     // TODO: Rest of overlays
     switch((u32)stream->unk4) {

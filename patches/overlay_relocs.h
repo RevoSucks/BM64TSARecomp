@@ -1314,9 +1314,10 @@ static const u32 s_relocs_ovl_stage_world8[] = {
 
 #define OVERLAY_FILE_TABLE_SIZE 141
 
+// TODO: Fix these
 static const OverlayRelocInfo g_relocs[OVERLAY_FILE_TABLE_SIZE] = {
-    [0x0A] = { s_relocs_ovl_actor_main, 402, 0x40000000 },
-    [0x0B] = { s_relocs_ovl_item_main, 56, 0x41000000 },
+    [0x0A] = { s_relocs_ovl_actor_main, 402, 0x80250000 },
+    [0x0B] = { s_relocs_ovl_item_main, 56, 0x80280000 },
     [0x0E] = { s_relocs_ovl_coll_main, 45, 0x44000000 },
     [0x0F] = { s_relocs_ovl_mobj_main, 308, 0x45000000 },
     [0x50] = { s_relocs_ovl_enemy_world1, 7, 0x43000000 },
