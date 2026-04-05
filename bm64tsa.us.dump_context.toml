@@ -3,12 +3,10 @@
 [input]
 entrypoint = 0x80000400
 # Paths are relative to the location of this config file.
-rom_file_path = "bm64tsa.decomp.us.z64"
-bss_section_suffix = "_bss"
-symbols_file_path = "BM64TSASyms/dump.toml"
 output_func_path = "RecompiledFuncs"
-recomp_include = "#include \"bm64tsa_recomp.h\""
-trace_mode = false
+elf_path = "bm64tsa.decomp.us.elf"
+relocatable_sections_path = "bm64tsa.us.overlays.txt"
+bss_section_suffix = "_bss"
 
 [patches]
 stubs = [

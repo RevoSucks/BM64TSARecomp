@@ -3,7 +3,7 @@
 //#include "process.h"
 #include "process_funcs.h"
 
-#define GetCurrentProcess HuGetCurrentProcess
+#define GetCurrentProcess GetCurrentProcess_game
 
 // pending heap to free after a process terminates itself
 
@@ -306,7 +306,7 @@ RECOMP_PATCH void WatchChildProcess(void) {
     }
 }
 
-RECOMP_EXPORT Process* GetCurrentProcess(void) {
+RECOMP_PATCH Process* GetCurrentProcess(void) {
     return current_process;
 }
 
@@ -529,7 +529,7 @@ RECOMP_PATCH void SetProcessCheck(void) {
 }
 
 RECOMP_PATCH void CheckProcessStruct(void) {
-    u8 *var_s0 = &D_800A59C8;
+    u8 *var_s0 = (u8*)D_800A59C8;
     u8 *cur_process = (u8*)current_process; // didnt use GetCurrentProcess....
     int i;
 
