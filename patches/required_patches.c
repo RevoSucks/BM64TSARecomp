@@ -117,10 +117,10 @@ long ftell_game(HuFILE* stream);
 
 // fblock.c
 
-extern void decode(void *arg0, u8* arg1, s32 arg2);
+extern void decode(HuFILE *arg0, u8* arg1, s32 arg2);
 
-extern s32 D_80094ADC;
-extern s32 D_80094B04;
+extern const char *D_80094ADC;
+extern const char *D_80094B04;
 
 extern s32 D_800A0130;
 extern u32 D_800A0134;
@@ -128,23 +128,23 @@ extern u32 D_800A0134;
 extern s32 D_800A0138;
 extern s32 (*D_800A013C)();
 
-extern s32 D_80094A90;
-extern s32 D_80094AB8;
+extern const char *D_80094A90;
+extern const char *D_80094AB8;
 
 extern u8 D_800F0250[][3];
 extern u8 D_800EF250[][2];
 
 
 
-extern u32 D_8008E750[];
+extern s32 D_8008E750[];
 
 // FUNCTIONS
 
-static void info_setup_export(void) {
+void info_setup_export(void) {
     dmaRead(&D_800EF250, 0x1000, 0xFF000);
 }
 
-static void fchangeblockaddr_export(s32 arg0) {
+void fchangeblockaddr_export(s32 arg0) {
     D_800A0134 = arg0;
     finit_game(arg0);
 }
@@ -160,6 +160,34 @@ RECOMP_PATCH void fexecLoad(s32 id) {
 
 extern s32 func_ovl_menu_title_60000000(void);
 extern void overlay_apply_relocations(u32 file_id, u8 *load_addr);
+
+struct UnkStruct800CA668 {
+    long unk0;          // Module identifier?
+    long page_count;    // How many 4KB pages this mapping takes up (for example, 1 means the pages each have a size of 4KB, 4 means they have a size of 16KB, etc.)
+    long virtual_addr;  // Virtual address (KUSEG) of the overlay
+    long physical_addr; // Physical address of the overlay, corresponds to the KSEG0 address with the first bit being zero (for example, physical is 0x00250000 and KSEG0 is 0x80250000)
+};
+
+extern struct UnkStruct800CA668 D_800CA668[64];
+
+s32 tlb_resolve_virtual_to_physical(s32 virtual_addr) {
+    s32 current_page = 0;
+
+    while (current_page < 64) {
+        if (D_800CA668[current_page].virtual_addr == virtual_addr) {
+            return D_800CA668[current_page].physical_addr;
+        }
+        
+        if (D_800CA668[current_page].page_count != 0) {
+            current_page += D_800CA668[current_page].page_count;
+        } else {
+            current_page++;
+        }
+
+    }
+
+    return -1;
+}
 
 RECOMP_PATCH u32 fexecLoadAddress(s32 id, u32 (*func)()) {
     HuFILE *stream;
@@ -182,7 +210,7 @@ RECOMP_PATCH u32 fexecLoadAddress(s32 id, u32 (*func)()) {
     i = fsize_game(stream);
 
     if (i >= 0x202) {
-        errstop(&D_80094A90, D_800EF250[id][0]); // "too long file size : evinfo : block %d\n"
+        errstop(D_80094A90, D_800EF250[id][0]); // "too long file size : evinfo : block %d\n"
     }
 
     fread_game((void*)&D_800F0250, 1, i, stream);
@@ -197,7 +225,7 @@ RECOMP_PATCH u32 fexecLoadAddress(s32 id, u32 (*func)()) {
     }
 
     if (i >= D_800F0250[0][0]) {
-        errstop(&D_80094AB8, id); // "Can not find evfile number : %d\n"
+        errstop(D_80094AB8, id); // "Can not find evfile number : %d\n"
     }
 
     fclose_game(stream);
@@ -225,57 +253,61 @@ RECOMP_PATCH u32 fexecLoadAddress(s32 id, u32 (*func)()) {
     /* 0x60000000 */ // 0x80370000
 
     funcBackup = func;
+    func = (u32 (*)())( (void *)(tlb_resolve_virtual_to_physical((s32)func) + 0x80000000));
 
     // TODO: Rest of overlays
     switch((u32)stream->unk4) {
-        case 0x10800C: func = (void*)0x80250000; recomp_load_overlays(0x1000010, func, i); break; // ovl_actor_main
-        case 0x12800C: func = (void*)0x80280000; recomp_load_overlays(0x10201E0, func, i); break; // ovl_item_main
-        case 0x13800C: func = (void*)0x80310000; recomp_load_overlays(0x10273D0, func, i); break; // ovl_coll_main
-        case 0x14800C: func = (void*)0x80340000; recomp_load_overlays(0x102E100, func, i); break; // ovl_mobj_main
-        case 0x16801E: func = (void*)0x802B0000; recomp_load_overlays(0x1040E10, func, i); break; // ovl_blast_flame
-        case 0x169E50: func = (void*)0x802B0000; recomp_load_overlays(0x1044470, func, i); break; // ovl_blast_ice
-        case 0x16C2FA: func = (void*)0x802B0000; recomp_load_overlays(0x1048430, func, i); break; // ovl_blast_wind
-        case 0x16EB1E: func = (void*)0x802B0000; recomp_load_overlays(0x104C8E0, func, i); break; // ovl_blast_ground
-        case 0x17150C: func = (void*)0x802B0000; recomp_load_overlays(0x1050FF0, func, i); break; // ovl_blast_elec
-        case 0x173D0A: func = (void*)0x802B0000; recomp_load_overlays(0x1055450, func, i); break; // ovl_blast_light
-        case 0x176344: func = (void*)0x802B0000; recomp_load_overlays(0x1059700, func, i); break; // ovl_blast_dark
-        case 0x188024: func = (void*)0x802E0000; recomp_load_overlays(0x105DE50, func, i); break; // ovl_enemy_world1
-        case 0x18E7F8: func = (void*)0x802E0000; recomp_load_overlays(0x10685D0, func, i); break; // ovl_enemy_world2
-        case 0x195020: func = (void*)0x802E0000; recomp_load_overlays(0x1072EF0, func, i); break; // ovl_enemy_world3
-        case 0x19B6DA: func = (void*)0x802E0000; recomp_load_overlays(0x107D500, func, i); break; // ovl_enemy_world4
-        case 0x1A1946: func = (void*)0x802E0000; recomp_load_overlays(0x1087490, func, i); break; // ovl_enemy_world5
-        case 0x1A7EBC: func = (void*)0x802E0000; recomp_load_overlays(0x1091710, func, i); break; // ovl_enemy_world6
-        case 0x1AE4CC: func = (void*)0x802E0000; recomp_load_overlays(0x109BBF0, func, i); break; // ovl_enemy_world7
-        case 0x1B49AE: func = (void*)0x802E0000; recomp_load_overlays(0x10A5E80, func, i); break; // ovl_enemy_world8
-        case 0x1BB4E2: func = (void*)0x802E0000; recomp_load_overlays(0x10B0AF0, func, i); break; // ovl_enemy_battle
-        case 0x1E8012: func = (void*)0x802E0000; recomp_load_overlays(0x10BA3A0, func, i); break; // ovl_boss_demon
-        case 0x1EEFFC: func = (void*)0x802E0000; recomp_load_overlays(0x10C4B90, func, i); break; // ovl_boss_devil
-        case 0x1F6EAA: func = (void*)0x802E0000; recomp_load_overlays(0x10D0330, func, i); break; // ovl_boss_angel
-        case 0x22801C: func = (void*)0x80370000; recomp_load_overlays(0x10DC340, func, i); break; // ovl_menu_card
-        case 0x229D0E: func = (void*)0x80370000; recomp_load_overlays(0x10DFA80, func, i); break; // ovl_menu_title
-        case 0x22C92E: func = (void*)0x80370000; recomp_load_overlays(0x10E4440, func, i); break; // ovl_menu_file
-        case 0x22E668: func = (void*)0x80370000; recomp_load_overlays(0x10E77A0, func, i); break; // ovl_menu_battle
-        case 0x236118: func = (void*)0x80370000; recomp_load_overlays(0x10F37E0, func, i); break; // ovl_menu_custom
-        case 0x239668: func = (void*)0x80370000; recomp_load_overlays(0x10F8F10, func, i); break; // ovl_menu_stage
-        case 0x248010: func = (void*)0x80370000; recomp_load_overlays(0x10FF850, func, i); break; // ovl_demo_story
-        case 0x24C094: func = (void*)0x80370000; recomp_load_overlays(0x1107250, func, i); break; // ovl_demo_guide
-        case 0x258022: func = (void*)0x80370000; recomp_load_overlays(0x1108F70, func, i); break; // ovl_stage_world1
-        case 0x25A13E: func = (void*)0x80370000; recomp_load_overlays(0x110D180, func, i); break; // ovl_stage_world2
-        case 0x25D006: func = (void*)0x80370000; recomp_load_overlays(0x1112E30, func, i); break; // ovl_stage_world3
-        case 0x2608A6: func = (void*)0x80370000; recomp_load_overlays(0x11198D0, func, i); break; // ovl_stage_world4
-        case 0x263C62: func = (void*)0x80370000; recomp_load_overlays(0x1120E00, func, i); break; // ovl_stage_world5
-        case 0x265A32: func = (void*)0x80370000; recomp_load_overlays(0x1124A30, func, i); break; // ovl_stage_world6
-        case 0x269008: func = (void*)0x80370000; recomp_load_overlays(0x112B010, func, i); break; // ovl_stage_world7
-        case 0x26BF18: func = (void*)0x80370000; recomp_load_overlays(0x1130B60, func, i); break; // ovl_stage_world8
+        case 0x10800C: recomp_load_overlays(0x1000010, func, i); break; // ovl_actor_main
+        case 0x12800C: recomp_load_overlays(0x10201E0, func, i); break; // ovl_item_main
+        case 0x13800C: recomp_load_overlays(0x10273D0, func, i); break; // ovl_coll_main
+        case 0x14800C: recomp_load_overlays(0x102E100, func, i); break; // ovl_mobj_main
+        case 0x16801E: recomp_load_overlays(0x1040E10, func, i); break; // ovl_blast_flame
+        case 0x169E50: recomp_load_overlays(0x1044470, func, i); break; // ovl_blast_ice
+        case 0x16C2FA: recomp_load_overlays(0x1048430, func, i); break; // ovl_blast_wind
+        case 0x16EB1E: recomp_load_overlays(0x104C8E0, func, i); break; // ovl_blast_ground
+        case 0x17150C: recomp_load_overlays(0x1050FF0, func, i); break; // ovl_blast_elec
+        case 0x173D0A: recomp_load_overlays(0x1055450, func, i); break; // ovl_blast_light
+        case 0x176344: recomp_load_overlays(0x1059700, func, i); break; // ovl_blast_dark
+        case 0x188024: recomp_load_overlays(0x105DE50, func, i); break; // ovl_enemy_world1
+        case 0x18E7F8: recomp_load_overlays(0x10685D0, func, i); break; // ovl_enemy_world2
+        case 0x195020: recomp_load_overlays(0x1072EF0, func, i); break; // ovl_enemy_world3
+        case 0x19B6DA: recomp_load_overlays(0x107D500, func, i); break; // ovl_enemy_world4
+        case 0x1A1946: recomp_load_overlays(0x1087490, func, i); break; // ovl_enemy_world5
+        case 0x1A7EBC: recomp_load_overlays(0x1091710, func, i); break; // ovl_enemy_world6
+        case 0x1AE4CC: recomp_load_overlays(0x109BBF0, func, i); break; // ovl_enemy_world7
+        case 0x1B49AE: recomp_load_overlays(0x10A5E80, func, i); break; // ovl_enemy_world8
+        case 0x1BB4E2: recomp_load_overlays(0x10B0AF0, func, i); break; // ovl_enemy_battle
+        case 0x1E8012: recomp_load_overlays(0x10BA3A0, func, i); break; // ovl_boss_demon
+        case 0x1EEFFC: recomp_load_overlays(0x10C4B90, func, i); break; // ovl_boss_devil
+        case 0x1F6EAA: recomp_load_overlays(0x10D0330, func, i); break; // ovl_boss_angel
+        case 0x22801C: recomp_load_overlays(0x10DC340, func, i); break; // ovl_menu_card
+        case 0x229D0E: recomp_load_overlays(0x10DFA80, func, i); break; // ovl_menu_title
+        case 0x22C92E: recomp_load_overlays(0x10E4440, func, i); break; // ovl_menu_file
+        case 0x22E668: recomp_load_overlays(0x10E77A0, func, i); break; // ovl_menu_battle
+        case 0x236118: recomp_load_overlays(0x10F37E0, func, i); break; // ovl_menu_custom
+        case 0x239668: recomp_load_overlays(0x10F8F10, func, i); break; // ovl_menu_stage
+        case 0x248010: recomp_load_overlays(0x10FF850, func, i); break; // ovl_demo_story
+        case 0x24C094: recomp_load_overlays(0x1107250, func, i); break; // ovl_demo_guide
+        case 0x258022: recomp_load_overlays(0x1108F70, func, i); break; // ovl_stage_world1
+        case 0x25A13E: recomp_load_overlays(0x110D180, func, i); break; // ovl_stage_world2
+        case 0x25D006: recomp_load_overlays(0x1112E30, func, i); break; // ovl_stage_world3
+        case 0x2608A6: recomp_load_overlays(0x11198D0, func, i); break; // ovl_stage_world4
+        case 0x263C62: recomp_load_overlays(0x1120E00, func, i); break; // ovl_stage_world5
+        case 0x265A32: recomp_load_overlays(0x1124A30, func, i); break; // ovl_stage_world6
+        case 0x269008: recomp_load_overlays(0x112B010, func, i); break; // ovl_stage_world7
+        case 0x26BF18: recomp_load_overlays(0x1130B60, func, i); break; // ovl_stage_world8
         default:
             if ((u32)func >= 0x40000000 && (u32)func <= 0x60000000) {
                 recomp_printf("[fexecLoadAddress] Unrecognized load from 0x%08X func 0x%08X (size 0x%08X)\n", stream->unk4, (u32)func, i);
             }
-            decode(stream, func, i);
             break;
     }
 
-    overlay_apply_relocations(fileID, func);
+    recomp_printf("[fexecLoadAddress] decode stream 0x%08X func 0x%08X (size 0x%08X)\n", stream, (u32)func, i);
+
+    decode(stream, (u8*)func, i);
+
+    overlay_apply_relocations(fileID, (u8*)func);
 
     osWritebackDCache((void*)(((u32) ((u32)func + 0xF) >> 4) * 0x10), 0x80000);
     fclose_game(stream);
@@ -304,7 +336,7 @@ RECOMP_PATCH s32 fexecGetFileSize(s32 id) {
     i = fsize_game(stream);
 
     if (i >= 0x202) {
-        errstop(&D_80094ADC, D_800EF250[id][0]);
+        errstop(D_80094ADC, D_800EF250[id][0]);
     }
 
     fread_game((void*)&D_800F0250, 1, i, stream);
@@ -318,13 +350,13 @@ RECOMP_PATCH s32 fexecGetFileSize(s32 id) {
     }
 
     if (i >= D_800F0250[0][0]) {
-        errstop(&D_80094B04, id);
+        errstop(D_80094B04, id);
     }
 
     fclose_game(stream);
     stream = fopen_game(evfile_found, 1);
     fread_game((u8*)&i, 4, 1, stream);
-    fread_game(&sp3C, 4, 1, stream);
+    fread_game((u8*)&sp3C, 4, 1, stream);
     fclose_game(stream);
 
     if (D_800A0134 != size) {
@@ -341,7 +373,7 @@ RECOMP_PATCH void fexecCall(void) {
 RECOMP_PATCH void fexecInit(void) {
     int size = 0x2A0000;
 
-    zjSetVec(4, &D_8008E750);
+    zjSetVec(4, D_8008E750);
     D_800A0130 = -1;
     D_800A0134 = -1;
     D_800A0138 = -1;
@@ -376,3 +408,62 @@ RECOMP_PATCH void zerojumpinit(void) {
     recomp_load_overlays(0x00098510, (void*)0x10000000, 0x130); // load zerojmp manually to RAM with a hack.
     D_80097910[0] = (u32)&D_8008E640; // map the secure call manually.
 }
+
+#if 0
+
+// decode.c
+
+extern void *malloc(s32);
+extern void free(void *);
+extern void hmemset(u8 *, s32, s32);
+
+extern s32 D_8008E760;
+extern u8* D_800A0140;
+extern u16 D_800A0144;
+
+RECOMP_PATCH void decode(HuFILE *arg0, u8* arg1, s32 arg2) {
+    s32 temp_a0;
+    s32 temp_v0_3;
+    s32 i;
+    u16 var_s5;
+    s32 temp_s4;
+
+    D_8008E760 = 1;
+    D_800A0140 = malloc(0x400);
+    D_800A0144 = 0x3BE;
+    hmemset(D_800A0140, 0, 0x400);
+    var_s5 = 0;
+    while (arg2 > 0) {
+        var_s5 >>= 1;
+        if (!(var_s5 & 0x100)) {
+            var_s5 = fgetc_game(arg0) | 0xFF00;
+        }
+        if (var_s5 & 1) {
+            D_800A0140[D_800A0144] = *arg1++ = fgetc_game(arg0);
+            arg2--;
+            D_800A0144++;
+            D_800A0144 &= 0x3FF;
+        } else {
+            temp_s4 = fgetc_game(arg0);
+            temp_v0_3 = fgetc_game(arg0);
+            temp_s4 |= ((temp_v0_3 & ~0x3F) * 4);
+            temp_a0 = (temp_v0_3 & 0x3F) + 3;
+
+            // Cap the copy length so we don't write past the output buffer
+            if (temp_a0 > arg2) {
+                temp_a0 = arg2;
+            }
+
+            for (i = 0; i < temp_a0; i++) {
+                D_800A0140[D_800A0144] = *arg1++ = D_800A0140[(temp_s4 + i) & 0x3FF];
+                D_800A0144++;
+                D_800A0144 &= 0x3FF;
+            }
+            arg2 -= i;
+        }
+    }
+    free(D_800A0140);
+    D_8008E760 = 0;
+}
+
+#endif

@@ -1,0 +1,79 @@
+# Config file for Bomberman 64 The Second Attack Recompilation
+
+[input]
+entrypoint = 0x80000400
+# Paths are relative to the location of this config file.
+output_func_path = "RecompiledFuncs"
+elf_path = "bm64tsa.decomp.us.elf"
+relocatable_sections_path = "bm64tsa.us.overlays.txt"
+bss_section_suffix = "_bss"
+
+[patches]
+stubs = [
+    "func_80073EC0", # watchlo
+    "func_80073EE0", # watchhi, i think
+]
+
+ignored = [
+    #"__osBlockSum",
+    "__osPfsReleasePages",
+    "__osPfsDeclearPage",
+    #"osPfsReFormat",
+]
+
+# These are osGetCount calls, but we cannot recompile that handwritten function, so we patch these to
+# call osGetCount instead which is handled on recomp side.
+[[patches.instruction]]
+func = "func_ovl_boss_demon_43009E60"
+vram = 0x43009E64
+value = 0x00000000
+
+[[patches.hook]]
+func = "func_ovl_boss_demon_43009E60"
+before_vram = 0x43009E64
+text = """
+    osGetCount_recomp(rdram, ctx);
+"""
+
+[[patches.instruction]]
+func = "func_ovl_boss_devil_4300ADD0"
+vram = 0x4300ADD4
+value = 0x00000000
+
+[[patches.hook]]
+func = "func_ovl_boss_devil_4300ADD0"
+before_vram = 0x4300ADD4
+text = """
+    osGetCount_recomp(rdram, ctx);
+"""
+
+[[patches.instruction]]
+func = "func_ovl_boss_angel_4300B4A0"
+vram = 0x4300B4A4
+value = 0x00000000
+
+[[patches.hook]]
+func = "func_ovl_boss_angel_4300B4A0"
+before_vram = 0x4300B4A4
+text = """
+    osGetCount_recomp(rdram, ctx);
+"""
+
+# The GFX system uses KSEG1 pointers for its GFX pointers: turn these back to KSEG0 so recomp doesnt segfault.
+[[patches.instruction]]
+func = "func_8000479C" # gfxGetTopPointer
+vram = 0x800047CC
+value = 0x3C010000 # lui        $at, (0x20000000 >> 16) -> lui        $at, (0x00000000 >> 16)
+
+[[patches.instruction]]
+func = "func_800047E0" # gfxGetPointer
+vram = 0x80004810
+value = 0x3C010000 # lui        $at, (0x20000000 >> 16) -> lui        $at, (0x00000000 >> 16)
+
+# When osAiGetLength returns a number that exceeds the target amount of samples per frame, the calculation (target samples per frame - osAiGetLength()) will result in a negative number.
+# When the clamping takes place to prevent a number of bytes that is too small, it doesn't take into account the negative number that resulted from the calculation.
+# Not doing this results in a negative number being given to osAiSetNextBuffer causing a massive memory leak and crash (because a signed negative number is being read as unsigned).
+[[patches.instruction]]
+func = "func_80026578"
+vram = 0x80026790
+value = 0x00E3082A # sltu $at, $a3, $v1 -> slt $at, $a3, $v1
